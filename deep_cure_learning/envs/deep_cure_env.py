@@ -73,19 +73,24 @@ def random_delay():
 class DeepCure(gym.Env):
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, foreign_countries, v_base_infect_rate = None, v_lifetime = None, save_history=False, seed = None):
+    def __init__(self, foreign_countries, v_base_infect_rate = None, v_lifetime = None, use_discrete = False, save_history=False, seed = None):
         self.save_history = save_history
         self.f_countries = foreign_countries
         # the total number of citizens
         self.population = 100_000
         # the capacity of hospitals. Severe cases that aren't treated in the hospital may lead to death
         self.hospital_capacity = 0.005 * self.population
-        self.action_space = spaces.MultiBinary(3)
+        self.use_discrete = use_discrete
+        if self.use_discrete:
+            self.action_space = spaces.Discrete(8)
+        else:
+            self.action_space = spaces.MultiBinary(3)
         self.observation_space = spaces.Box(low=0, high=self.population, shape=(3,), dtype=np.float32)
         if seed is not None:
             self.action_space.seed(seed)
             self.observation_space.seed(seed)
         self.reset(v_base_infect_rate, v_lifetime)
+        
 
     def step(self, action):
         """
@@ -155,7 +160,10 @@ class DeepCure(gym.Env):
             self.hist_new_infected.append(self.new_number_of_infected)
             self.hist_new_severe.append(self.new_number_of_severe)
             self.hist_new_dead.append(self.new_number_of_dead)
-            self.hist_action.append(action)
+            if self.use_discrete:
+                self.hist_action.append(self.discrete_to_multib(action))
+            else:
+                self.hist_action.append(action)
 
         self.t += 1
 
@@ -247,6 +255,10 @@ class DeepCure(gym.Env):
         action: [ masks, curfew, borders]
         """
         assert self.action_space.contains(action), f'Invalid action {action}'
+        if self.use_discrete:
+            action = self.discrete_to_multib(action)
+        # else:
+        #     assert self.action_space.contains(action), f'Invalid action {action}'
         self.measures_active[0] = action[0] > 0
         self.is_curfew_active = action[1] > 0
         self.borders_open[0] = action[2] > 0
@@ -266,3 +278,24 @@ class DeepCure(gym.Env):
         The episode is over after v_lifetime timesteps
         """
         return self.t >= self.v_lifetime
+
+    def discrete_to_multib(self, action):
+        """
+        Translate Discrete to multiBinary
+        """
+        if action == 0:    
+            return [0, 0, 0]
+        elif action == 1:
+            return [1, 0, 0]
+        elif action == 2:
+            return [0, 1, 0]
+        elif action == 3:
+            return [1, 1, 0]
+        elif action == 4:
+            return [0, 0, 1]
+        elif action == 5:
+            return [1, 0, 1]
+        elif action == 6:
+            return [0, 1, 1]
+        elif action == 7:
+            return [1, 1, 1]
