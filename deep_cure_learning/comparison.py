@@ -3,6 +3,7 @@ from deep_q_agent import logistic_regression
 from saes_agent import NeuralNetworkPolicy
 from envs.deep_cure_env import DeepCure, ForeignCountry, random_base_infect_rate, random_lifetime, random_delay
 from plotting import plot
+from stable_baselines3 import DQN
 
 import numpy as np
 
@@ -43,6 +44,14 @@ def saes(env, policy, theta, rate, lifetime, delay):
         probs = policy(obs, theta)
         actions = probs >= 0.5
         obs, reward, done, _ = env.step(actions)
+    return sum(env.hist_reward), action_ratio(env)
+
+def stable(env, model, rate, lifetime, delay):
+    obs = env.reset(rate, lifetime, delay)
+    done = False
+    while not done:
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, done, info = env.step(action)
     return sum(env.hist_reward), action_ratio(env)
 
 def tweak_params(env, n=100):
@@ -97,9 +106,9 @@ def tweak_params(env, n=100):
     print(f'All borders open:{pr[7]} {r[7]}')
 
 
-def compare(env,theta, q_tables, policy, theta_saes, policy2, theta_saes2, n = 250):
-    cnts = [0] * (11 + len(q_tables))
-    rewards = [0] * (11 + len(q_tables))
+def compare(env, env2, theta, q_tables, policy, theta_saes, policy2, theta_saes2, model, n = 250):
+    cnts = [0] * (12 + len(q_tables))
+    rewards = [0] * (12 + len(q_tables))
     actions = [np.zeros((env.action_space.n,))] * (3+len(q_tables))
     reward_hist = list()
     for i in range(n):
@@ -117,11 +126,12 @@ def compare(env,theta, q_tables, policy, theta_saes, policy2, theta_saes2, n = 2
         rewards[8], deep_q_actions = deep_q(env, theta, rate, lifetime, delay)
         rewards[9], saes_actions = saes(env, policy, theta_saes, rate, lifetime, delay)
         rewards[10], saes2_actions = saes(env, policy2, theta_saes2, rate, lifetime, delay)
+        rewards[11], _ = stable(env2, model, rate, lifetime, delay)
         actions[0] = actions[0] + deep_q_actions
         actions[1] = actions[1] + saes_actions
         actions[2] = actions[2] + saes2_actions
         for i,(table,stepsize,num_states) in enumerate(q_tables):
-            rewards[11+i], q_table_actions = q_table(env, table, stepsize, num_states, rate, lifetime, delay)
+            rewards[12+i], q_table_actions = q_table(env, table, stepsize, num_states, rate, lifetime, delay)
             actions[3+i] = actions[3+i] + q_table_actions
 
         reward_hist.append(list(rewards))
@@ -144,8 +154,9 @@ def compare(env,theta, q_tables, policy, theta_saes, policy2, theta_saes2, n = 2
     print(f'Action deep-q agent: {cnts[8]}')
     print(f'Action saes agent (l1): {cnts[9]}')
     print(f'Action saes agent (l2): {cnts[10]}')
+    print(f'Action DQN Stable agent: {cnts[11]}')
     for i,(_,stepsize,_) in enumerate(q_tables):
-        print(f'Action q_table {stepsize}: {cnts[11+i]}')
+        print(f'Action q_table {stepsize}: {cnts[12+i]}')
     print()
     print(f'Action nothing\t\t{np.mean(reward_hist[:,0])} ({np.std(reward_hist[:,0])})')
     print(f'Action masks\t\t{np.mean(reward_hist[:,1])} ({np.std(reward_hist[:,1])})')
@@ -158,8 +169,9 @@ def compare(env,theta, q_tables, policy, theta_saes, policy2, theta_saes2, n = 2
     print(f'Action deep-q agent\t\t{np.mean(reward_hist[:,8])} ({np.std(reward_hist[:,8])})')
     print(f'Action saes agent (1 layer)\t\t{np.mean(reward_hist[:,9])} ({np.std(reward_hist[:,9])})')
     print(f'Action saes agent (2 layer)\t\t{np.mean(reward_hist[:,10])} ({np.std(reward_hist[:,10])})')
+    print(f'Action DQN Stable \t\t{np.mean(reward_hist[:,11])} ({np.std(reward_hist[:,11])})')
     for i,(_,stepsize,_) in enumerate(q_tables):
-        print(f'Action q_table {stepsize}:\t\t{np.mean(reward_hist[:,11+i])} ({np.std(reward_hist[:,11+i])}')
+        print(f'Action q_table {stepsize}:\t\t{np.mean(reward_hist[:,12+i])} ({np.std(reward_hist[:,12+i])}')
     print()
     print(f'Deep-q actions: {actions[0]}')
     print(f'SAES actions: {actions[1]}')
@@ -171,6 +183,9 @@ SEED = 22
 np.random.seed(SEED)
 env = DeepCure(foreign_countries = [ForeignCountry(0.1,100,100_000, save_history=True)], save_history=True, seed=SEED)
 env.reset()
+
+env2 = DeepCure(foreign_countries = [ForeignCountry(0.1,100,100_000, save_history=True)], use_discrete = True, save_history=True, seed=SEED)
+env2.reset()
 
 
 theta = np.load('theta.npy')
@@ -186,8 +201,10 @@ policy = NeuralNetworkPolicy(env, one_layer=True)
 theta_saes2 = np.load('saes-theta2.npy')
 policy2 = NeuralNetworkPolicy(env, h_size=10, one_layer=False)
 
+model = DQN.load("dqn_stable")
+
 # runs 250 environments and tests each agent
-# compare(env, theta, q_tables, policy, theta_saes, policy2, theta_saes2)
+compare(env, env2, theta, q_tables, policy, theta_saes, policy2, theta_saes2, model)
 
 
 
@@ -201,7 +218,7 @@ policy2 = NeuralNetworkPolicy(env, h_size=10, one_layer=False)
 # deep_q(env, theta, 1.7, 100, [40])
 
 # runs a baseline agent
-constant_action([True, True, False], 1.7, 100, [40])
+# constant_action([True, True, False], 1.7, 100, [40])
 
 # uncomment to plot the latest run
 # print(f'Reward {sum(env.hist_reward)}')
