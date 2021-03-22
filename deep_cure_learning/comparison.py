@@ -201,7 +201,7 @@ policy = NeuralNetworkPolicy(env, one_layer=True)
 theta_saes2 = np.load('saes-theta2.npy')
 policy2 = NeuralNetworkPolicy(env, h_size=10, one_layer=False)
 
-model = DQN.load("dqn_stable")
+model = DQN.load("best_model")
 
 # runs 250 environments and tests each agent
 compare(env, env2, theta, q_tables, policy, theta_saes, policy2, theta_saes2, model)
