@@ -1,2 +1,3 @@
 prettytable
 stable_baselines3
+torch
