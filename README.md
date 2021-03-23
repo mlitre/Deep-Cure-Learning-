@@ -10,10 +10,11 @@ The repository's important files are located as follows:
 │   ├── envs
 │   │   └── deep_cure_env.py
 │   ├── comparison.py
-│   ├── deep_q_agent.py (theta.npy)
+│   ├── reinforce_agent.py (theta.npy)
 │   ├── no_action_agent.py 
 │   ├── plotting.py
 │   ├── q_table_agent.py (qtable-100.npy, qtable-1000.npy)
+│   ├── stable.py (best_model.zip, dqn_stable.zip)
 │   └── saes_agent.py (saes-theta.npy, saes-theta2.npy)
 ├── README.md
 └── .gitignore
@@ -21,4 +22,11 @@ The repository's important files are located as follows:
 These files are the most important to our project.
 The deep_cure_env.py is the file that dictates our environment and how it evolves in time. This is the main contribution of our work.
 The files in the deep_cure_learning directory are all either agents or plotting and comparison scripts that we used to evaluate how the agents interacted with our custom environment. The _.npy_ filesin parenthesis following the agent scripts are the trained model values. 
-To reproduce the work, please use comparison.py and plotting.py. A fixed seed was implemented to this end. Furthermore, these scripts were used to create the figures in the report.
+To reproduce the work, please use `comparison.py` and `plotting.py`. A fixed seed was implemented to this end. Furthermore, these scripts were used to create the figures in the report.
+
+## How to run code
+
+Before running any files please install all requirements by running the command `pip install -r deep_cure_learning/requirements.txt`.
+Each agent python file can be run to update their respective agent's model. 
+However, to get the comparison between models of our environment, please run the `comparison.py` file. 
+This will create a table with the metrics of performance as explained in our report.
