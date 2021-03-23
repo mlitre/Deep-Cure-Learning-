@@ -27,6 +27,6 @@ To reproduce the work, please use `comparison.py` and `plotting.py`. A fixed see
 ## How to run code
 
 Before running any files please install all requirements by running the command `pip install -r deep_cure_learning/requirements.txt`.
-Each agent python file can be run to update their respective agent's model. 
+Each agent python file can be run to train their respective agent's model. 
 However, to get the comparison between models of our environment, please run the `comparison.py` file. 
 This will create a table with the metrics of performance as explained in our report.
