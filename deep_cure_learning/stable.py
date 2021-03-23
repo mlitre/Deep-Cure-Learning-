@@ -25,8 +25,7 @@ model = DQN.load("dqn_stable")
 
 obs = env.reset(rate=2.7)
 while True:
-    # action, _states = model.predict(obs, deterministic=True)
-    action, _states = model.predict(obs)
+    action, _states = model.predict(obs, deterministic=True)
     obs, reward, done, info = env.step(action)
 
     if done:
