@@ -36,8 +36,6 @@ def q_learning(environment, alpha=0.1, alpha_factor=0.9995, gamma=0.99, epsilon=
     num_states = np.minimum((environment.observation_space.high - environment.observation_space.low)/stepsize, max_steps).astype(int)
     num_actions = 2**environment.action_space.n
     q_array = np.zeros(list(num_states) + [num_actions])   # Initial Q table
-    print(f'QTable = {q_array.shape}')
-
     for episode_index in range(num_episodes):
         alpha_history.append(alpha)
 
@@ -59,24 +57,59 @@ def q_learning(environment, alpha=0.1, alpha_factor=0.9995, gamma=0.99, epsilon=
             state = new_state
 
         if last_q_array is not None:
-            q_array_history.append(np.max(np.absolute(q_array - last_q_array)))
+           q_array_history.append(np.max(np.absolute(q_array - last_q_array)))
         last_q_array = q_array.copy()
 
     return q_array, q_array_history, alpha_history
 
+def hyperparameter_search(stepsize, max_steps, gamma_range):
+    def eval_q_table(env, q_table, n=100):
+        rewards = np.zeros(n)
+        for i in range(n):
+            state = discretize(env.reset(), stepsize, num_states)
+            done = False
+            while not done:
+                action = greedy_policy(state, q_table)
+                state, reward, done, _ = env.step(action)
+                state = discretize(state, stepsize, num_states)
+            rewards[i] = sum(env.hist_reward)
+        return np.mean(rewards)
+    r = []
+    for gamma in gamma_range:
+        SEED = 42
+
+        np.random.seed(SEED)
+
+        env = DeepCure(foreign_countries = [ForeignCountry(0.1,100,100_000, save_history=True)], save_history=True, seed = SEED)
+        num_states = np.minimum((env.observation_space.high - env.observation_space.low)/stepsize, max_steps).astype(int)
+        q_table, _, _  = q_learning(env, stepsize=stepsize, max_steps=max_steps, gamma=gamma)
+        reward = eval_q_table(env, q_table)
+        r.append(reward)
+        print(f'Gamma={gamma}: {reward}')
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('$\\gamma$')
+    ax.set_ylabel('avg. reward')
+    ax.plot(gamma_range , r)
+    plt.show()
+
 if __name__ == "__main__":
+
+    #hyperparameter_search(100, 10, [i/100. for i in range(80,100)])
+    
     SEED = 42
 
     np.random.seed(SEED)
 
     env = DeepCure(foreign_countries = [ForeignCountry(0.1,100,100_000, save_history=True)], save_history=True, seed = SEED)
 
-    q_table, q_array_history, alpha_history = q_learning(env, epsilon=0.5, stepsize = 100, max_steps = 10)
+    q_table, q_array_history, alpha_history = q_learning(env, epsilon=0.5, gamma = 0.98, stepsize = 100, max_steps = 10)
     np.save(f'qtable-100.npy', q_table)
 
     np.random.seed(SEED)
 
-    q_table2, q_array_history2, _ = q_learning(env, epsilon=0.5, stepsize = 1000, max_steps = 10)
+    q_table2, q_array_history2, _ = q_learning(env, epsilon=0.5, gamma = 0.98, stepsize = 1000, max_steps = 10)
     np.save(f'qtable-1000.npy', q_table2)
 
     fig = plt.figure()
