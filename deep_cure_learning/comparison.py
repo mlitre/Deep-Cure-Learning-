@@ -1,5 +1,5 @@
 from q_table_agent import greedy_policy, discretize
-from deep_q_agent import logistic_regression
+from reinforce_agent import logistic_regression
 from saes_agent import NeuralNetworkPolicy
 from envs.deep_cure_env import DeepCure, ForeignCountry, random_base_infect_rate, random_lifetime, random_delay
 from plotting import plot
